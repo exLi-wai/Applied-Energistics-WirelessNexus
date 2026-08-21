@@ -1,0 +1,7 @@
+{
+  "parent": "block/cube_column",
+  "textures": {
+    "side": "ae_wireless_nexus:blocks/wireless_controller_column",
+    "end": "ae_wireless_nexus:blocks/wireless_controller_offline"
+  }
+}

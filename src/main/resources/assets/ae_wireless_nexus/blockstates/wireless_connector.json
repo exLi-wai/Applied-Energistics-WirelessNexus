@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "normal": {
+      "model": "ae_wireless_nexus:wireless_connector"
+    }
+  }
+}

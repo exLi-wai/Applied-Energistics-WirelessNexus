@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "com.lw.ae_wireless_nexus.mixin.ae2",
+  "refmap": "mixins.ae_wireless_nexus.refmap.json",
+  "target": "@env(DEFAULT)",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinGrid",
+    "MixinPathGridCache"
+  ]
+}

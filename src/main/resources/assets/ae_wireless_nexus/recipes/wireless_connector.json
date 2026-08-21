@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "FEF",
+    "EGE",
+    "FEF"
+  ],
+  "key": {
+    "F": {
+      "type": "forge:ore_dict",
+      "ore": "crystalFluix"
+    },
+    "E": {
+      "item": "minecraft:ender_pearl"
+    },
+    "G": {
+      "item": "appliedenergistics2:quartz_glass"
+    }
+  },
+  "result": {
+    "item": "ae_wireless_nexus:wireless_connector"
+  }
+}
