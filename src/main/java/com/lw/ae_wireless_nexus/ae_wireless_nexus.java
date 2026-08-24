@@ -16,6 +16,9 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 import com.lw.ae_wireless_nexus.network.WirelessNetworkService;
+import com.lw.ae_wireless_nexus.misc.Mods;
+import com.lw.ae_wireless_nexus.integration.mmce.MMCEInteractionHandler;
+import net.minecraftforge.common.MinecraftForge;
 
 @Mod(
         modid =
@@ -48,6 +51,7 @@ public class ae_wireless_nexus {
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
+        if (Mods.MMCE.isLoaded()) MinecraftForge.EVENT_BUS.register(new MMCEInteractionHandler());
     }
 
     @Mod.EventHandler

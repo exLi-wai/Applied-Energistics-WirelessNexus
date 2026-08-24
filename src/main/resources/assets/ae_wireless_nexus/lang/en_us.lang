@@ -2,6 +2,7 @@ itemGroup.ae_wireless_nexus=Applied Energistics: Wireless Nexus
 tile.ae_wireless_nexus.wireless_controller.name=Wireless ME Controller
 tile.ae_wireless_nexus.wireless_connector.name=Wireless ME Connector
 item.ae_wireless_nexus.wireless_connector_tool.name=ME Wireless Connector Tool
+
 gui.ae_wireless_nexus.save_name=Save name
 gui.ae_wireless_nexus.bind_first=Bind first network
 gui.ae_wireless_nexus.unbind=Unbind
@@ -22,10 +23,15 @@ gui.ae_wireless_nexus.available_channels=Available channels: %s
 gui.ae_wireless_nexus.available_networks=Available networks: %s
 gui.ae_wireless_nexus.no_networks=No available networks
 gui.ae_wireless_nexus.disconnect=Disconnect
+gui.ae_wireless_nexus.open_selector=Wireless Network
+
 tooltip.ae_wireless_nexus.wireless_tool.bound_network=Bound network: %s
 tooltip.ae_wireless_nexus.wireless_tool.unbound=Right-click a Wireless ME Controller to bind
 tooltip.ae_wireless_nexus.wireless_tool.auto_bind=Auto-binds placed connectors from offhand or Baubles slots
+
 message.ae_wireless_nexus.wireless_tool.selected=Selected wireless network: %s
 message.ae_wireless_nexus.wireless_tool.connected=Placed Wireless ME Connector connected to: %s
+message.ae_wireless_nexus.wireless_tool.mmce_connected=Placed ME machine component connected to wireless network: %s
 message.ae_wireless_nexus.wireless_tool.no_permission=No permission to bind wireless network: %s
 message.ae_wireless_nexus.wireless_tool.bind_failed=Could not connect the Wireless ME Connector to: %s
+

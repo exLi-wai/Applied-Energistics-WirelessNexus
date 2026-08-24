@@ -1,5 +1,7 @@
 package com.lw.ae_wireless_nexus.network;
 
+import com.lw.ae_wireless_nexus.config.WirelessConfig;
+
 import java.util.UUID;
 
 public final class WirelessNetworkNames {
@@ -11,7 +13,7 @@ public final class WirelessNetworkNames {
         if (value == null) return "";
         StringBuilder result = new StringBuilder();
         int codePoints = 0;
-        int limit = Math.max(1, com.lw.ae_wireless_nexus.config.WirelessConfig.maxNetworkNameLength);
+        int limit = Math.max(1, WirelessConfig.maxNetworkNameLength);
         for (int offset = 0; offset < value.length() && codePoints < limit;) {
             int codePoint = value.codePointAt(offset);
             offset += Character.charCount(codePoint);

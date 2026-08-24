@@ -9,6 +9,7 @@ public final class NetworkHandler {
     private static int packetId = 0;
 
     public static void registerPackets() {
+        CHANNEL.registerMessage(PacketOpenWirelessEndpoint.Handler.class, PacketOpenWirelessEndpoint.class, packetId++, Side.SERVER);
         CHANNEL.registerMessage(PacketWirelessBind.Handler.class, PacketWirelessBind.class, packetId++, Side.SERVER);
         CHANNEL.registerMessage(PacketWirelessUnbind.Handler.class, PacketWirelessUnbind.class, packetId++, Side.SERVER);
         CHANNEL.registerMessage(PacketWirelessRename.Handler.class, PacketWirelessRename.class, packetId++, Side.SERVER);

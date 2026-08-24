@@ -1,5 +1,6 @@
 package com.lw.ae_wireless_nexus.common.network;
 
+import com.lw.ae_wireless_nexus.common.gui.GuiHandler;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.PacketBuffer;
@@ -42,7 +43,7 @@ public final class PacketWirelessRename implements IMessage {
                 TileEntity tile = player.world.getTileEntity(message.position);
                 if (tile instanceof TileWirelessController) {
                     WirelessNetworkService.setNetworkName((TileWirelessController) tile, message.name, player);
-                    PacketWirelessState.send(player, message.position, com.lw.ae_wireless_nexus.common.gui.GuiHandler.WIRELESS_CONTROLLER);
+                    PacketWirelessState.send(player, message.position, GuiHandler.WIRELESS_CONTROLLER);
                     PacketWirelessNetworks.send(player);
                 }
             });

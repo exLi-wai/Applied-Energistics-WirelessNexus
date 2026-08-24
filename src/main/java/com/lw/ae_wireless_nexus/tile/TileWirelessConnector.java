@@ -12,6 +12,7 @@ import appeng.api.util.AEPartLocation;
 import appeng.core.worlddata.WorldData;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.tile.grid.AENetworkTile;
+import com.lw.ae_wireless_nexus.config.WirelessConfig;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
@@ -21,15 +22,20 @@ import net.minecraft.util.ITickable;
 import com.lw.ae_wireless_nexus.ae_wireless_nexus;
 import com.lw.ae_wireless_nexus.api.IWirelessBindableEndpoint;
 import com.lw.ae_wireless_nexus.api.WirelessEndpointState;
+import com.lw.ae_wireless_nexus.api.WirelessLocation;
 import com.lw.ae_wireless_nexus.common.gui.ContainerWireless;
 import com.lw.ae_wireless_nexus.common.gui.GuiHandler;
 import com.lw.ae_wireless_nexus.common.network.PacketWirelessNetworks;
 import com.lw.ae_wireless_nexus.common.network.PacketWirelessState;
 import com.lw.ae_wireless_nexus.network.WirelessLeaseStatus;
+import com.lw.ae_wireless_nexus.network.WirelessRuntimeEndpoint;
 import com.lw.ae_wireless_nexus.network.WirelessNetworkService;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.World;
 
 public class TileWirelessConnector extends AENetworkTile
-    implements IWirelessBindableEndpoint, ITickable {
+    implements IWirelessBindableEndpoint, WirelessRuntimeEndpoint, ITickable {
 
     private UUID targetNetwork;
     private UUID bindingPlayer;
@@ -156,6 +162,11 @@ public class TileWirelessConnector extends AENetworkTile
         }
     }
 
+    @Override
+    public void setWirelessLease(WirelessLeaseStatus status, TileWirelessController target) {
+        setLease(status, target);
+    }
+
     private void destroyRemoteConnection() {
         if (remoteConnection != null) {
             remoteConnection.destroy();
@@ -173,7 +184,7 @@ public class TileWirelessConnector extends AENetworkTile
         priority = Math.max(
             0,
             Math.min(
-                com.lw.ae_wireless_nexus.config.WirelessConfig.maxEndpointPriority,
+                WirelessConfig.maxEndpointPriority,
                 value));
         markDirty();
     }
@@ -181,7 +192,7 @@ public class TileWirelessConnector extends AENetworkTile
     @Override
     public int getRequestedWirelessChannels() {
         IGridNode node = getWirelessGridNode();
-        if (node == null || remoteConnection == null) {
+        if (node == null) {
             requestedChannels = 0;
             return 0;
         }
@@ -191,9 +202,9 @@ public class TileWirelessConnector extends AENetworkTile
             ? minimum
             : node.hasFlag(GridFlags.DENSE_CAPACITY) ? 32 : 8;
 
-        requestedChannels = Math.max(
-            minimum,
-            Math.min(maximum, remoteConnection.getUsedChannels()));
+        requestedChannels = remoteConnection == null
+            ? Math.max(requestedChannels, minimum)
+            : Math.max(minimum, Math.min(maximum, remoteConnection.getUsedChannels()));
         return requestedChannels;
     }
 
@@ -201,8 +212,24 @@ public class TileWirelessConnector extends AENetworkTile
         return 0;
     }
 
-    private IGridNode getWirelessGridNode() {
+    @Override
+    public IGridNode getWirelessGridNode() {
         return getProxy() == null ? null : getProxy().getNode();
+    }
+
+    @Override
+    public World getWirelessEndpointWorld() {
+        return world;
+    }
+
+    @Override
+    public int getWirelessBindingPlayerId() {
+        return bindingPlayerId;
+    }
+
+    @Override
+    public boolean isWirelessEndpointValid() {
+        return world != null && !world.isRemote && !isInvalid();
     }
 
     @Override
@@ -210,6 +237,16 @@ public class TileWirelessConnector extends AENetworkTile
         return world == null
             ? "connector:unloaded"
             : "connector:" + world.provider.getDimension() + ":" + pos.toLong();
+    }
+
+    @Override
+    public WirelessLocation getWirelessEndpointLocation() {
+        return world == null ? null : new WirelessLocation(world.provider.getDimension(), pos);
+    }
+
+    @Override
+    public ITextComponent getWirelessEndpointDisplayName() {
+        return new TextComponentTranslation("tile.ae_wireless_nexus.wireless_connector.name");
     }
 
     @Override
@@ -226,7 +263,7 @@ public class TileWirelessConnector extends AENetworkTile
         priority = Math.max(
             0,
             Math.min(
-                com.lw.ae_wireless_nexus.config.WirelessConfig.maxEndpointPriority,
+                WirelessConfig.maxEndpointPriority,
                 tag.getInteger("WirelessPriority")));
         bindingPlayerId = tag.hasKey("WirelessPlayerId")
             ? tag.getInteger("WirelessPlayerId")
@@ -301,4 +338,3 @@ public class TileWirelessConnector extends AENetworkTile
         }
     }
 }
-

@@ -3,6 +3,8 @@ package com.lw.ae_wireless_nexus.client.gui;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.lw.ae_wireless_nexus.config.WirelessConfig;
 import org.lwjgl.input.Mouse;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiTextField;
@@ -65,7 +67,7 @@ public final class GuiWireless extends GuiContainer {
         super.initGui();
         if (guiId == GuiHandler.WIRELESS_CONTROLLER) {
             nameField = new GuiTextField(1, fontRenderer, guiLeft + 10, guiTop + 44, xSize - 20, 18);
-            nameField.setMaxStringLength(com.lw.ae_wireless_nexus.config.WirelessConfig.maxNetworkNameLength);
+            nameField.setMaxStringLength(WirelessConfig.maxNetworkNameLength);
             nameField.setTextColor(0xFFFFFF);
             nameField.setText("Wireless Network");
         } else {
@@ -112,7 +114,7 @@ public final class GuiWireless extends GuiContainer {
         super.mouseClicked(mouseX, mouseY, mouseButton);
         if (nameField != null) nameField.mouseClicked(mouseX, mouseY, mouseButton);
         if (priorityField != null) priorityField.mouseClicked(mouseX, mouseY, mouseButton);
-        if (guiId != GuiHandler.WIRELESS_CONNECTOR || mouseButton != 0) return;
+        if (guiId == GuiHandler.WIRELESS_CONTROLLER || mouseButton != 0) return;
 
         List<PacketWirelessNetworks.Entry> entries = snapshotEntries();
         clampNetworkScroll(entries.size());
@@ -161,7 +163,7 @@ public final class GuiWireless extends GuiContainer {
     @Override
     public void handleMouseInput() throws IOException {
         super.handleMouseInput();
-        if (guiId != GuiHandler.WIRELESS_CONNECTOR) return;
+        if (guiId == GuiHandler.WIRELESS_CONTROLLER) return;
 
         int wheel = Mouse.getEventDWheel();
         if (wheel == 0) return;
@@ -177,7 +179,7 @@ public final class GuiWireless extends GuiContainer {
 
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
-        if (button.id == 1 && guiId == GuiHandler.WIRELESS_CONNECTOR) {
+        if (button.id == 1 && guiId != GuiHandler.WIRELESS_CONTROLLER) {
             NetworkHandler.CHANNEL.sendToServer(new PacketWirelessUnbind(position));
         }
     }

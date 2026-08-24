@@ -11,6 +11,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.Map;
 import java.util.HashMap;
+
+import com.lw.ae_wireless_nexus.api.WirelessEndpointState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
@@ -22,14 +24,17 @@ import appeng.api.networking.pathing.ControllerState;
 import appeng.api.networking.security.ISecurityGrid;
 import appeng.me.GridAccessException;
 import appeng.tile.networking.TileController;
+import appeng.core.worlddata.WorldData;
 import com.lw.ae_wireless_nexus.tile.TileWirelessController;
 import com.lw.ae_wireless_nexus.tile.TileWirelessConnector;
 import com.lw.ae_wireless_nexus.config.WirelessConfig;
+import com.lw.ae_wireless_nexus.ae_wireless_nexus;
+import net.minecraftforge.common.DimensionManager;
 
 public final class WirelessNetworkService {
     public static final int CHANNELS_PER_EXPOSED_FACE = 32;
     private WirelessNetworkService() {}
-    private static final Map<String, TileWirelessConnector> CONNECTORS = new HashMap<String, TileWirelessConnector>();
+    private static final Map<String, WirelessRuntimeEndpoint> ENDPOINTS = new HashMap<String, WirelessRuntimeEndpoint>();
 
     public static boolean hasMultipleWirelessControllers(Iterable<? extends TileController> controllers) {
         int found = 0;
@@ -114,82 +119,154 @@ public final class WirelessNetworkService {
             ISecurityGrid security = controller.getProxy().getSecurity();
             return security.hasPermission(player, SecurityPermissions.BUILD);
         } catch (GridAccessException ex) {
-            // A standalone wireless controller has no security cache until its
-            // first wireless link is established. Allow the initial bind so
-            // the link can bootstrap; subsequent checks use AE2 security.
             return true;
         }
     }
 
     public static boolean bindConnector(TileWirelessConnector connector,
         UUID networkId, EntityPlayer player) {
-        if (connector == null || networkId == null || player == null || connector.getWorld() == null || connector.getWorld().isRemote) return false;
-        WirelessNetworkRecord record = WirelessNetworkSavedData.get(connector.getWorld()).get(networkId);
-        if (record == null || !record.isOnline()) return false;
+        return bindEndpoint(connector, networkId, player);
+    }
+
+    public static boolean bindEndpoint(WirelessRuntimeEndpoint endpoint,
+        UUID networkId, EntityPlayer player) {
+        if (endpoint == null || networkId == null || player == null) return false;
+        if (endpoint.getWirelessNetworkId() != null && !canModifyEndpoint(endpoint, player)) return false;
+        World world = endpoint.getWirelessEndpointWorld();
+        if (world == null || world.isRemote) return false;
+        WirelessNetworkRecord record = WirelessNetworkSavedData.get(world).get(networkId);
         TileWirelessController controller = findController(record);
-        if (controller == null || !hasPermission(controller, player)) return false;
-        connector.bindToNetwork(networkId, player.getUniqueID());
-        registerConnector(connector);
+        if (record == null || !record.isOnline() || controller == null
+            || !hasPermission(controller, player)) return false;
+        endpoint.bindWirelessNetwork(networkId, player.getUniqueID());
+        registerEndpoint(endpoint);
         return true;
     }
 
-    public static void registerConnector(TileWirelessConnector connector) {
-        if (connector != null && connector.getWorld() != null && !connector.getWorld().isRemote) {
-            CONNECTORS.put(connector.getWirelessEndpointKey(), connector);
-            allocate(connector.getWorld());
+
+    public static boolean bindEndpointPersisted(WirelessRuntimeEndpoint endpoint,
+        UUID networkId, EntityPlayer player) {
+        if (endpoint == null || networkId == null || player == null) {
+            ae_wireless_nexus.LOGGER.info("Persisted wireless bind rejected: missing endpoint/network/player");
+            return false;
         }
+        World world = endpoint.getWirelessEndpointWorld();
+        if (world == null || world.isRemote) {
+            ae_wireless_nexus.LOGGER.info("Persisted wireless bind rejected: invalid world (remote={})",
+                world != null && world.isRemote);
+            return false;
+        }
+        if (endpoint.getWirelessNetworkId() != null && !canModifyEndpoint(endpoint, player)) {
+            ae_wireless_nexus.LOGGER.info("Persisted wireless bind rejected: player {} cannot modify endpoint {}",
+                player.getName(), endpoint.getWirelessEndpointKey());
+            return false;
+        }
+        WirelessNetworkRecord record = WirelessNetworkSavedData.get(world).get(networkId);
+        if (record == null) {
+            ae_wireless_nexus.LOGGER.info("Persisted wireless bind rejected: network {} not found in dimension {}",
+                networkId, world.provider.getDimension());
+            return false;
+        }
+        TileWirelessController controller = findController(record);
+        if (controller != null && !hasPermission(controller, player)) {
+            ae_wireless_nexus.LOGGER.info("Persisted wireless bind rejected: player {} lacks permission for {}",
+                player.getName(), networkId);
+            return false;
+        }
+        endpoint.bindWirelessNetwork(networkId, player.getUniqueID());
+        registerEndpoint(endpoint);
+        return true;
+    }
+
+    public static boolean canModifyEndpoint(WirelessRuntimeEndpoint endpoint,
+        EntityPlayer player) {
+        if (endpoint == null || player == null) return false;
+        int playerId = WorldData.instance().playerData().getPlayerID(player.getGameProfile());
+        if (playerId >= 0 && playerId == endpoint.getWirelessBindingPlayerId()) return true;
+        World world = endpoint.getWirelessEndpointWorld();
+        UUID networkId = endpoint.getWirelessNetworkId();
+        if (world == null || networkId == null) return false;
+        WirelessNetworkRecord record = WirelessNetworkSavedData.get(world).get(networkId);
+        TileWirelessController controller = findController(record);
+        return controller != null && hasPermission(controller, player);
+    }
+
+    public static void registerConnector(TileWirelessConnector connector) {
+        registerEndpoint(connector);
     }
 
     public static void unregisterConnector(TileWirelessConnector connector) {
-        if (connector == null) return;
-        CONNECTORS.remove(connector.getWirelessEndpointKey());
-        connector.setLease(WirelessLeaseStatus.UNBOUND, null);
+        unregisterEndpoint(connector);
+    }
+
+    public static void registerEndpoint(WirelessRuntimeEndpoint endpoint) {
+        if (endpoint == null || endpoint.getWirelessEndpointWorld() == null
+            || endpoint.getWirelessEndpointWorld().isRemote || !endpoint.isWirelessEndpointValid()) return;
+        ENDPOINTS.put(endpoint.getWirelessEndpointKey(), endpoint);
+        allocate(endpoint.getWirelessEndpointWorld());
+    }
+
+    public static void unregisterEndpoint(WirelessRuntimeEndpoint endpoint) {
+        if (endpoint == null) return;
+        ENDPOINTS.remove(endpoint.getWirelessEndpointKey());
+        endpoint.setWirelessLease(WirelessLeaseStatus.UNBOUND, null);
     }
 
     private static void allocate(World world) {
         if (world == null || world.isRemote) return;
         WirelessNetworkSavedData data = WirelessNetworkSavedData.get(world);
         for (WirelessNetworkRecord record : data.records()) record.setAllocatedChannels(0);
-        List<TileWirelessConnector> connectors = new ArrayList<TileWirelessConnector>(CONNECTORS.values());
-        Collections.sort(connectors, new Comparator<TileWirelessConnector>() {
-            @Override public int compare(TileWirelessConnector a, TileWirelessConnector b) {
+        List<WirelessRuntimeEndpoint> connectors = new ArrayList<WirelessRuntimeEndpoint>(ENDPOINTS.values());
+        Collections.sort(connectors, new Comparator<WirelessRuntimeEndpoint>() {
+            @Override
+            public int compare(WirelessRuntimeEndpoint a, WirelessRuntimeEndpoint b) {
                 int priority = Integer.compare(b.getWirelessPriority(), a.getWirelessPriority());
                 return priority != 0 ? priority : a.getWirelessEndpointKey().compareTo(b.getWirelessEndpointKey());
             }
         });
-        for (TileWirelessConnector connector : connectors) {
+        for (WirelessRuntimeEndpoint connector : connectors) {
             UUID id = connector.getWirelessNetworkId();
-            if (id == null) { connector.setLease(WirelessLeaseStatus.UNBOUND, null); continue; }
+            if (id == null) { connector.setWirelessLease(WirelessLeaseStatus.UNBOUND, null); continue; }
             WirelessNetworkRecord record = data.get(id);
             TileWirelessController target = findController(record);
-            if (record == null || target == null) { connector.setLease(WirelessLeaseStatus.TARGET_OFFLINE, null); continue; }
-            EntityPlayer player = connector.getBindingPlayer() == null ? null
-                : world.getMinecraftServer()
-                    .getPlayerList()
-                    .getPlayerByUUID(connector.getBindingPlayer());
-            if (player == null || !hasPermission(target, player)) { connector.setLease(WirelessLeaseStatus.NO_PERMISSION, null); continue; }
+            if (record == null || target == null) { connector.setWirelessLease(WirelessLeaseStatus.TARGET_OFFLINE, null); continue; }
+            if (!hasPermission(target, connector.getWirelessBindingPlayerId())) { connector.setWirelessLease(WirelessLeaseStatus.NO_PERMISSION, null); continue; }
             int requested = Math.min(Math.max(1, WirelessConfig.channelsPerExposedFace),
                 Math.max(0, connector.getRequestedWirelessChannels()));
             if (record.getAllocatedChannels() + requested <= record.getTotalChannels()) {
-                connector.setLease(WirelessLeaseStatus.CONNECTING, target);
-                if (connector.getLeaseStatus() == WirelessLeaseStatus.CONNECTED) {
+                connector.setWirelessLease(WirelessLeaseStatus.CONNECTING, target);
+                if (connector.getWirelessEndpointState() == WirelessEndpointState.CONNECTED) {
                     record.setAllocatedChannels(record.getAllocatedChannels() + requested);
                 }
-            } else connector.setLease(WirelessLeaseStatus.CAPACITY_EXHAUSTED, null);
+            } else connector.setWirelessLease(WirelessLeaseStatus.CAPACITY_EXHAUSTED, null);
         }
         data.markDirty();
     }
 
     public static void clearRuntime() {
-        for (TileWirelessConnector connector : new ArrayList<TileWirelessConnector>(CONNECTORS.values())) {
-            connector.setLease(WirelessLeaseStatus.UNBOUND, null);
+        for (WirelessRuntimeEndpoint connector : new ArrayList<WirelessRuntimeEndpoint>(ENDPOINTS.values())) {
+            connector.setWirelessLease(WirelessLeaseStatus.UNBOUND, null);
         }
-        CONNECTORS.clear();
+        ENDPOINTS.clear();
+    }
+
+    public static void refreshRuntime(World world) {
+        allocate(world);
+    }
+
+    private static boolean hasPermission(TileWirelessController controller, int playerId) {
+        if (controller == null || playerId < 0) return false;
+        try {
+            ISecurityGrid security = controller.getProxy().getSecurity();
+            return security.hasPermission(playerId, SecurityPermissions.BUILD);
+        } catch (GridAccessException ex) {
+            return true;
+        }
     }
 
     private static TileWirelessController findController(WirelessNetworkRecord record) {
         if (record == null || !record.isOnline()) return null;
-        World world = net.minecraftforge.common.DimensionManager.getWorld(record.getDimension());
+        World world = DimensionManager.getWorld(record.getDimension());
         if (world == null) return null;
         TileEntity tile = world.getTileEntity(new BlockPos(record.getX(), record.getY(), record.getZ()));
         return tile instanceof TileWirelessController ? (TileWirelessController) tile : null;

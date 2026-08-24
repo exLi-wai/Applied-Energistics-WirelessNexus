@@ -10,8 +10,6 @@ import com.lw.ae_wireless_nexus.network.WirelessNetworkToolBinding;
 
 public final class BaublesWirelessToolSupport {
 
-    private BaublesWirelessToolSupport() {}
-
     @Optional.Method(modid = "baubles")
     public static ItemStack findBoundWirelessTool(EntityPlayer player) {
         IBaublesItemHandler handler = BaublesApi.getBaublesHandler(player);

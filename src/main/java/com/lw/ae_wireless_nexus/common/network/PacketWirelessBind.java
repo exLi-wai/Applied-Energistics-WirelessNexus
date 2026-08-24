@@ -1,6 +1,8 @@
 package com.lw.ae_wireless_nexus.common.network;
 
 import java.util.UUID;
+
+import com.lw.ae_wireless_nexus.common.gui.GuiHandler;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.tileentity.TileEntity;
@@ -10,6 +12,9 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import com.lw.ae_wireless_nexus.network.WirelessNetworkService;
 import com.lw.ae_wireless_nexus.tile.TileWirelessConnector;
+import com.lw.ae_wireless_nexus.network.WirelessEndpointLookup;
+import com.lw.ae_wireless_nexus.network.WirelessRuntimeEndpoint;
+import com.lw.ae_wireless_nexus.network.WirelessEndpointGuiService;
 
 public final class PacketWirelessBind implements IMessage {
     private BlockPos connectorPos;
@@ -42,13 +47,16 @@ public final class PacketWirelessBind implements IMessage {
         public IMessage onMessage(final PacketWirelessBind message, final MessageContext context) {
             final EntityPlayerMP player = context.getServerHandler().player;
             player.getServerWorld().addScheduledTask(() -> {
-                if (message.connectorPos == null || message.networkId == null
-                    || player.getDistanceSq(message.connectorPos) > 64.0D) return;
+                if (message.connectorPos == null || message.networkId == null) return;
                 TileEntity tile = player.world.getTileEntity(message.connectorPos);
-                if (tile instanceof TileWirelessConnector) {
-                    WirelessNetworkService.bindConnector(
-                        (TileWirelessConnector) tile, message.networkId, player);
-                    PacketWirelessState.send(player, message.connectorPos, com.lw.ae_wireless_nexus.common.gui.GuiHandler.WIRELESS_CONNECTOR);
+                WirelessRuntimeEndpoint endpoint = WirelessEndpointGuiService.findAccessible(
+                    player, player.world, message.connectorPos);
+                if (endpoint != null) {
+                    WirelessNetworkService.bindEndpoint(endpoint, message.networkId, player);
+                    int gui = tile instanceof TileWirelessConnector
+                        ? GuiHandler.WIRELESS_CONNECTOR
+                        : GuiHandler.WIRELESS_ENDPOINT;
+                    PacketWirelessState.send(player, message.connectorPos, gui);
                     PacketWirelessNetworks.send(player);
                 }
             });

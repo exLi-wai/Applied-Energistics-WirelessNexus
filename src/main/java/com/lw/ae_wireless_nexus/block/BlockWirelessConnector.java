@@ -6,12 +6,17 @@ import appeng.block.AEBaseTileBlock;
 import com.lw.ae_wireless_nexus.tile.TileWirelessConnector;
 import com.lw.ae_wireless_nexus.ae_wireless_nexus;
 import com.lw.ae_wireless_nexus.network.WirelessNetworkToolBinding;
+import com.lw.ae_wireless_nexus.network.WirelessNetworkService;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
+
+import java.util.UUID;
 
 public class BlockWirelessConnector extends AEBaseTileBlock {
     public BlockWirelessConnector() {
@@ -24,7 +29,7 @@ public class BlockWirelessConnector extends AEBaseTileBlock {
     }
 
     @Override
-    public void onBlockPlacedBy(World world, BlockPos pos, net.minecraft.block.state.IBlockState state,
+    public void onBlockPlacedBy(World world, BlockPos pos, IBlockState state,
         EntityLivingBase placer, ItemStack stack) {
         super.onBlockPlacedBy(world, pos, state, placer, stack);
         if (world.isRemote || !(placer instanceof EntityPlayer)) return;
@@ -32,10 +37,16 @@ public class BlockWirelessConnector extends AEBaseTileBlock {
         TileEntity tile = world.getTileEntity(pos);
         if (tile instanceof TileWirelessConnector) {
             EntityPlayer player = (EntityPlayer) placer;
-            WirelessNetworkToolBinding.bindConnector(
-                WirelessNetworkToolBinding.findAutomaticBindingTool(player),
-                (TileWirelessConnector) tile,
-                player);
+            ItemStack tool = WirelessNetworkToolBinding.findAutomaticBindingTool(player);
+            UUID networkId = WirelessNetworkToolBinding.getNetworkId(tool);
+            if (networkId != null) {
+                if (WirelessNetworkService.bindEndpointPersisted((TileWirelessConnector) tile,
+                    networkId, player)) {
+                    player.sendMessage(new TextComponentTranslation(
+                        "message.ae_wireless_nexus.wireless_tool.connected",
+                        WirelessNetworkToolBinding.getNetworkDisplayName(tool)));
+                }
+            }
         }
     }
 }

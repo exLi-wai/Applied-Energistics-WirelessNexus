@@ -37,9 +37,6 @@ public final class InteractionHandler {
             return;
         }
 
-        // Do not turn a placement click against an existing wireless block into
-        // a GUI click. This is also required for offhand auto-binding when a
-        // connector is placed beside a controller or another connector.
         if (held.getItem() instanceof ItemBlock) return;
         if (event.getWorld().isRemote || player.isSneaking()) return;
 

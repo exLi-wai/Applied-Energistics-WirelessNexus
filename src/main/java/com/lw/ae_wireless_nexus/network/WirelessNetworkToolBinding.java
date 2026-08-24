@@ -7,6 +7,7 @@ import com.lw.ae_wireless_nexus.registry.ModItems;
 import com.lw.ae_wireless_nexus.integration.baubles.BaublesWirelessToolSupport;
 import com.lw.ae_wireless_nexus.tile.TileWirelessConnector;
 import com.lw.ae_wireless_nexus.tile.TileWirelessController;
+import com.lw.ae_wireless_nexus.ae_wireless_nexus;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -47,22 +48,31 @@ public final class WirelessNetworkToolBinding {
         NBTTagCompound binding = new NBTTagCompound();
         binding.setString(NETWORK_ID_TAG, controller.getNetworkId().toString());
         binding.setString(NETWORK_NAME_TAG, networkName);
-        root.setTag(BINDING_TAG, binding);
+        if (root != null) {
+            root.setTag(BINDING_TAG, binding);
+        }
         tool.setTagCompound(root);
         player.inventory.markDirty();
+        ae_wireless_nexus.LOGGER.info("Wireless connector tool selected network {} ({}) for player {}",
+            networkName, controller.getNetworkId(), player.getName());
         notifyPlayer(player, "message.ae_wireless_nexus.wireless_tool.selected", networkName);
         return true;
     }
 
     public static boolean bindConnector(ItemStack tool, TileWirelessConnector connector,
         EntityPlayer player) {
+        return bindEndpoint(tool, connector, player);
+    }
+
+    public static boolean bindEndpoint(ItemStack tool, WirelessRuntimeEndpoint endpoint,
+        EntityPlayer player) {
         UUID networkId = getNetworkId(tool);
-        if (networkId == null || connector == null || player == null) {
+        if (networkId == null || endpoint == null || player == null) {
             return false;
         }
 
         String networkName = getNetworkDisplayName(tool);
-        if (!WirelessNetworkService.bindConnector(connector, networkId, player)) {
+        if (!WirelessNetworkService.bindEndpoint(endpoint, networkId, player)) {
             notifyPlayer(player, "message.ae_wireless_nexus.wireless_tool.bind_failed",
                 networkName);
             return false;
@@ -77,13 +87,20 @@ public final class WirelessNetworkToolBinding {
     }
 
     public static ItemStack findAutomaticBindingTool(EntityPlayer player) {
+        if (player == null) return ItemStack.EMPTY;
+
         ItemStack offhand = player.getHeldItemOffhand();
-        if (hasBinding(offhand)) {
-            return offhand;
-        }
+        if (hasBinding(offhand)) return offhand;
+
         if (Loader.isModLoaded("baubles")) {
-            return BaublesWirelessToolSupport.findBoundWirelessTool(player);
+            ItemStack bauble = BaublesWirelessToolSupport.findBoundWirelessTool(player);
+            if (hasBinding(bauble)) return bauble;
         }
+
+        for (ItemStack carried : player.inventory.mainInventory) {
+            if (hasBinding(carried)) return carried;
+        }
+
         return ItemStack.EMPTY;
     }
 

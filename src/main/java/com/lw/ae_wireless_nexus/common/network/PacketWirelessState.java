@@ -1,6 +1,8 @@
 package com.lw.ae_wireless_nexus.common.network;
 
 import java.util.UUID;
+
+import com.lw.ae_wireless_nexus.api.WirelessEndpointState;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -14,13 +16,14 @@ import com.lw.ae_wireless_nexus.network.WirelessNetworkRecord;
 import com.lw.ae_wireless_nexus.network.WirelessNetworkService;
 import com.lw.ae_wireless_nexus.tile.TileWirelessConnector;
 import com.lw.ae_wireless_nexus.tile.TileWirelessController;
+import com.lw.ae_wireless_nexus.network.WirelessEndpointLookup;
+import com.lw.ae_wireless_nexus.network.WirelessRuntimeEndpoint;
 
 public final class PacketWirelessState implements IMessage {
     public static volatile State CLIENT_STATE;
     private State state;
 
-    public PacketWirelessState() {
-    }
+    public PacketWirelessState(){}
 
     public PacketWirelessState(State state) { this.state = state; }
 
@@ -30,10 +33,21 @@ public final class PacketWirelessState implements IMessage {
         if (tile instanceof TileWirelessController) {
             TileWirelessController controller = (TileWirelessController) tile;
             WirelessNetworkRecord record = WirelessNetworkService.getRecord(controller);
-            if (record != null) state = new State(guiId, pos, record.getId(), record.getName(), record.getTotalChannels(), record.getAllocatedChannels(), 0, record.isOnline());
-        } else if (tile instanceof TileWirelessConnector) {
-            TileWirelessConnector connector = (TileWirelessConnector) tile;
-            state = new State(guiId, pos, connector.getWirelessNetworkId(), "", 0, 0, connector.getWirelessPriority(), connector.getLeaseStatus() == com.lw.ae_wireless_nexus.network.WirelessLeaseStatus.CONNECTED);
+            if (record != null) state = new State(
+                    guiId,
+                    pos,
+                    record.getId(),
+                    record.getName(),
+                    record.getTotalChannels(),
+                    record.getAllocatedChannels(),
+                    0,
+                    record.isOnline());
+        } else {
+            WirelessRuntimeEndpoint connector = WirelessEndpointLookup.find(tile);
+            if (connector != null) state = new State(guiId, pos,
+                connector.getWirelessNetworkId(), "", 0, 0,
+                connector.getWirelessPriority(),
+                connector.getWirelessEndpointState() == WirelessEndpointState.CONNECTED);
         }
         NetworkHandler.CHANNEL.sendTo(new PacketWirelessState(state), player);
     }
@@ -41,21 +55,48 @@ public final class PacketWirelessState implements IMessage {
     @Override
     public void fromBytes(ByteBuf buffer) {
         PacketBuffer p = new PacketBuffer(buffer);
-        int gui = p.readVarInt(); BlockPos pos = new BlockPos(p.readInt(), p.readInt(), p.readInt());
-        boolean has = p.readBoolean(); UUID id = has ? new UUID(p.readLong(), p.readLong()) : null;
-        state = new State(gui, pos, id, p.readString(64), p.readVarInt(), p.readVarInt(), p.readVarInt(), p.readBoolean());
+        int gui = p.readVarInt();
+        BlockPos pos = new BlockPos(
+                p.readInt(),
+                p.readInt(),
+                p.readInt()
+        );
+        boolean has = p.readBoolean();
+        UUID id = has ? new UUID(
+                p.readLong(),
+                p.readLong()
+        ) : null;
+        state = new State(
+                gui, pos, id, p.readString(64),
+                p.readVarInt(),
+                p.readVarInt(),
+                p.readVarInt(),
+                p.readBoolean()
+        );
     }
     @Override
     public void toBytes(ByteBuf buffer) {
         PacketBuffer p = new PacketBuffer(buffer); p.writeVarInt(state.guiId);
-        p.writeInt(state.pos.getX()); p.writeInt(state.pos.getY()); p.writeInt(state.pos.getZ());
-        p.writeBoolean(state.id != null); if (state.id != null) { p.writeLong(state.id.getMostSignificantBits()); p.writeLong(state.id.getLeastSignificantBits()); }
-        p.writeString(state.name == null ? "" : state.name); p.writeVarInt(state.total); p.writeVarInt(state.allocated); p.writeVarInt(state.priority); p.writeBoolean(state.online);
+        p.writeInt(state.pos.getX());
+        p.writeInt(state.pos.getY());
+        p.writeInt(state.pos.getZ());
+        p.writeBoolean(state.id != null);
+        if (state.id != null) {
+            p.writeLong(state.id.getMostSignificantBits());
+            p.writeLong(state.id.getLeastSignificantBits());
+        }
+        p.writeString(state.name == null ? "" : state.name);
+        p.writeVarInt(state.total);
+        p.writeVarInt(state.allocated);
+        p.writeVarInt(state.priority);
+        p.writeBoolean(state.online);
     }
     public static final class Handler implements IMessageHandler<PacketWirelessState, IMessage> {
         @Override
         public IMessage onMessage(final PacketWirelessState message, MessageContext context) {
-            Minecraft.getMinecraft().addScheduledTask(() -> { CLIENT_STATE = message.state; });
+            Minecraft.getMinecraft().addScheduledTask(() -> {
+                CLIENT_STATE = message.state;
+            });
             return null;
         }
     }

@@ -4,6 +4,7 @@ import java.util.List;
 
 import baubles.api.BaubleType;
 import baubles.api.IBauble;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -36,13 +37,13 @@ public class ItemWirelessConnectorTool extends Item implements IBauble {
         ITooltipFlag flag) {
         super.addInformation(stack, world, tooltip, flag);
         if (WirelessNetworkToolBinding.hasBinding(stack)) {
-            tooltip.add(TextFormatting.AQUA + net.minecraft.client.resources.I18n.format(
+            tooltip.add(TextFormatting.AQUA + I18n.format(
                 "tooltip.ae_wireless_nexus.wireless_tool.bound_network",
                 WirelessNetworkToolBinding.getNetworkDisplayName(stack)));
-            tooltip.add(TextFormatting.GRAY + net.minecraft.client.resources.I18n.format(
+            tooltip.add(TextFormatting.GRAY + I18n.format(
                 "tooltip.ae_wireless_nexus.wireless_tool.auto_bind"));
         } else {
-            tooltip.add(TextFormatting.GRAY + net.minecraft.client.resources.I18n.format(
+            tooltip.add(TextFormatting.GRAY + I18n.format(
                 "tooltip.ae_wireless_nexus.wireless_tool.unbound"));
         }
     }

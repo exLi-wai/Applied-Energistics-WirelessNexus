@@ -5,16 +5,16 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 
-final class GuiAeTexturedButton extends GuiButton {
+public final class GuiAeTexturedButton extends GuiButton {
     private static final ResourceLocation NORMAL = texture("button.png");
     private static final ResourceLocation HOVERED = texture("button_highlighted.png");
     private static final ResourceLocation DISABLED = texture("button_disabled.png");
 
-    GuiAeTexturedButton(int id, int x, int y, String text) {
+    public GuiAeTexturedButton(int id, int x, int y, String text) {
         this(id, x, y, 200, text);
     }
 
-    GuiAeTexturedButton(int id, int x, int y, int width, String text) {
+    public GuiAeTexturedButton(int id, int x, int y, int width, String text) {
         super(id, x, y, width, 20, text);
     }
 

@@ -1,6 +1,8 @@
 package com.lw.ae_wireless_nexus.mixin.ae2;
 
 import java.util.Set;
+
+import com.lw.ae_wireless_nexus.ae_wireless_nexus;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -30,7 +32,7 @@ public abstract class MixinPathGridCache {
 
     @Inject(method = "recalcController", at = @At("RETURN"))
     private void aeWirelessNexus$rejectMultipleWirelessControllers(CallbackInfo ci) {
-        com.lw.ae_wireless_nexus.ae_wireless_nexus.LOGGER.debug(
+        ae_wireless_nexus.LOGGER.debug(
             "MixinPathGridCache recalculated controller set (size={})", controllers.size());
         if (WirelessNetworkService.hasMultipleWirelessControllers(controllers)
             && controllerState != ControllerState.CONTROLLER_CONFLICT) {
