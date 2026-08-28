@@ -8,9 +8,17 @@ import com.lw.ae_wireless_nexus.tile.TileWirelessController;
 import com.lw.ae_wireless_nexus.ae_wireless_nexus;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.IBlockAccess;
+import com.lw.ae_wireless_nexus.common.gui.GuiHandler;
+import com.lw.ae_wireless_nexus.network.WirelessNetworkToolBinding;
 
 public class BlockWirelessController extends BlockController {
     public BlockWirelessController() {
@@ -43,6 +51,36 @@ public class BlockWirelessController extends BlockController {
 
     private static boolean isController(IBlockAccess world, BlockPos pos) {
         return world.getTileEntity(pos) instanceof TileController;
+    }
+
+    @Override
+    public boolean onBlockActivated(World world, BlockPos pos, IBlockState state,
+        EntityPlayer player, EnumHand hand, EnumFacing side, float hitX, float hitY,
+        float hitZ) {
+        if (hand != EnumHand.MAIN_HAND) return true;
+
+        ItemStack held = player.getHeldItem(hand);
+        if (player.isSneaking() || held.getItem() instanceof ItemBlock) {
+            return super.onBlockActivated(world, pos, state, player, hand, side,
+                hitX, hitY, hitZ);
+        }
+
+        TileEntity tile = world.getTileEntity(pos);
+        if (!(tile instanceof TileWirelessController)) return false;
+
+        if (WirelessNetworkToolBinding.isWirelessConnectorTool(held)) {
+            if (!world.isRemote) {
+                WirelessNetworkToolBinding.selectNetwork(
+                    held, (TileWirelessController) tile, player);
+            }
+            return true;
+        }
+
+        if (!world.isRemote) {
+            player.openGui(ae_wireless_nexus.instance, GuiHandler.WIRELESS_CONTROLLER,
+                world, pos.getX(), pos.getY(), pos.getZ());
+        }
+        return true;
     }
 
     @Override

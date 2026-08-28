@@ -12,8 +12,6 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import com.lw.ae_wireless_nexus.ae_wireless_nexus;
 import com.lw.ae_wireless_nexus.common.gui.GuiHandler;
 import com.lw.ae_wireless_nexus.tile.TileWirelessConnector;
-import com.lw.ae_wireless_nexus.tile.TileWirelessController;
-import com.lw.ae_wireless_nexus.network.WirelessNetworkToolBinding;
 
 @Mod.EventBusSubscriber(modid = ae_wireless_nexus.MOD_ID)
 public final class InteractionHandler {
@@ -26,22 +24,10 @@ public final class InteractionHandler {
         EntityPlayer player = event.getEntityPlayer();
         ItemStack held = player.getHeldItemMainhand();
 
-        if (tile instanceof TileWirelessController
-            && WirelessNetworkToolBinding.isWirelessConnectorTool(held)) {
-            if (!event.getWorld().isRemote) {
-                WirelessNetworkToolBinding.selectNetwork(
-                    held, (TileWirelessController) tile, player);
-            }
-            event.setCancellationResult(EnumActionResult.SUCCESS);
-            event.setCanceled(true);
-            return;
-        }
-
         if (held.getItem() instanceof ItemBlock) return;
         if (event.getWorld().isRemote || player.isSneaking()) return;
 
-        int id = tile instanceof TileWirelessController ? GuiHandler.WIRELESS_CONTROLLER
-            : tile instanceof TileWirelessConnector ? GuiHandler.WIRELESS_CONNECTOR : -1;
+        int id = tile instanceof TileWirelessConnector ? GuiHandler.WIRELESS_CONNECTOR : -1;
         if (id < 0) return;
         player.openGui(ae_wireless_nexus.instance, id, event.getWorld(),
             event.getPos().getX(), event.getPos().getY(), event.getPos().getZ());
