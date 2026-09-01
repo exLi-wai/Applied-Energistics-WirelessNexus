@@ -1,6 +1,12 @@
 {
-  "parent": "block/cube_all",
+  "parent": "block/cube",
   "textures": {
-    "all": "ae_wireless_nexus:blocks/wireless_connector"
+    "down": "ae_wireless_nexus:blocks/network_hub_side",
+    "up": "ae_wireless_nexus:blocks/network_hub_side",
+    "north": "ae_wireless_nexus:blocks/network_hub",
+    "south": "ae_wireless_nexus:blocks/network_hub",
+    "west": "ae_wireless_nexus:blocks/network_hub",
+    "east": "ae_wireless_nexus:blocks/network_hub",
+    "particle": "ae_wireless_nexus:blocks/network_hub"
   }
 }

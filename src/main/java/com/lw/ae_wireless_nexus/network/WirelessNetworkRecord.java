@@ -76,7 +76,9 @@ public final class WirelessNetworkRecord {
         tag.setString("Id", id.toString());
         tag.setString("Name", name);
         tag.setInteger("Dimension", dimension);
-        tag.setInteger("X", x); tag.setInteger("Y", y); tag.setInteger("Z", z);
+        tag.setInteger("X", x);
+        tag.setInteger("Y", y);
+        tag.setInteger("Z", z);
         tag.setInteger("Total", totalChannels);
         tag.setInteger("Allocated", allocatedChannels);
         return tag;
@@ -87,7 +89,12 @@ public final class WirelessNetworkRecord {
             UUID id = UUID.fromString(tag.getString("Id"));
             WirelessNetworkRecord record = new WirelessNetworkRecord(id);
             if (tag.hasKey("Name")) record.setName(tag.getString("Name"));
-            record.setAnchor(tag.getInteger("Dimension"), tag.getInteger("X"), tag.getInteger("Y"), tag.getInteger("Z"));
+            record.setAnchor(
+                    tag.getInteger("Dimension"),
+                    tag.getInteger("X"),
+                    tag.getInteger("Y"),
+                    tag.getInteger("Z")
+            );
             record.setTotalChannels(tag.getInteger("Total"));
             record.setAllocatedChannels(0);
             record.setOnline(false);
